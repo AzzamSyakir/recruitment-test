@@ -1,13 +1,13 @@
 package routes
 
 import (
-	"database/sql"
-	"net/http"
-
 	"clean-golang/application/controller"
+	"clean-golang/application/middleware"
 	"clean-golang/application/repository"
 	"clean-golang/application/service"
 	"clean-golang/config"
+	"database/sql"
+	"net/http"
 
 	"github.com/gorilla/mux"
 )
@@ -17,13 +17,17 @@ func SetupRoutes(db *sql.DB) *mux.Router {
 	userService := service.NewInstance(*userRepo)
 	userController := controller.NewInstance(*userService)
 	router := mux.NewRouter()
-
-	// Routes for user handling
+	// auth
 	router.HandleFunc("/users", userController.CreateUserController).Methods("POST")
-	router.HandleFunc("/users", userController.FetchUserController).Methods("GET")
-	router.HandleFunc("/users/{id}", userController.GetUserController).Methods("GET")
-	router.HandleFunc("/users/{id}", userController.UpdateUserController).Methods("PUT")
-	router.HandleFunc("/users/{id}", userController.DeleteUser).Methods("DELETE")
+	router.HandleFunc("/users/login", userController.LoginUser).Methods("POST")
+	// Router untuk rute dengan dua middleware
+	protectedRoutes := router.PathPrefix("/").Subrouter()
+	protectedRoutes.Use(middleware.AuthMiddleware)
+	// users
+	protectedRoutes.HandleFunc("/users", userController.FetchUserController).Methods("GET")
+	protectedRoutes.HandleFunc("/users/{id}", userController.GetUserController).Methods("GET")
+	protectedRoutes.HandleFunc("/users/{id}", userController.UpdateUserController).Methods("PUT")
+	protectedRoutes.HandleFunc("/users/{id}", userController.DeleteUser).Methods("DELETE")
 
 	// Add more routes as needed
 

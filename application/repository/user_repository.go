@@ -1,7 +1,9 @@
 package repository
 
 import (
+	"clean-golang/application/models"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 )
@@ -28,38 +30,33 @@ func (ur *UserRepository) CreateUser(name, email, hashedPassword string, created
 
 	return lastInsertID, nil
 }
-func (ur *UserRepository) FetchUser() (map[string]string, error) {
-	var (
-		id         string
-		username   string
-		email      string
-		password   string
-		created_at string
-		updated_at string
-	)
-
-	err := ur.db.QueryRow("SELECT * FROM users").Scan(
-		&id,
-		&username,
-		&email,
-		&password,
-		&created_at,
-		&updated_at,
-	)
+func (ur *UserRepository) FetchUser() ([]models.User, error) {
+	rows, err := ur.db.Query("SELECT id, name, email, password, created_at, updated_at FROM users")
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
-	userData := map[string]string{
-		"id":         id,
-		"username":   username,
-		"email":      email,
-		"password":   password,
-		"created_at": created_at,
-		"updated_at": updated_at,
+	var users []models.User
+
+	for rows.Next() {
+		var user models.User
+		err := rows.Scan(
+			&user.ID,
+			&user.Name,
+			&user.Email,
+			&user.Password,
+			&user.CreatedAt,
+			&user.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		users = append(users, user)
 	}
 
-	return userData, nil
+	return users, nil
 }
 func (ur *UserRepository) UpdateUser(id int, name, email, password string, updatedAt time.Time) error {
 	result, err := ur.db.Exec("UPDATE users SET name=?, email=?, password=?, updated_at=? WHERE id=?",
@@ -97,34 +94,30 @@ func (ur *UserRepository) DeleteUser(id int) error {
 
 	return nil
 }
-func (ur *UserRepository) GetUser(id int) (map[string]string, error) {
-	var (
-		username   string
-		email      string
-		password   string
-		created_at string
-		updated_at string
-	)
+func (ur *UserRepository) GetUser(id int) (*models.User, error) {
+	user := &models.User{}
 
-	err := ur.db.QueryRow("SELECT * FROM users where id=?", id).Scan(
-		&id,
-		&username,
-		&email,
-		&password,
-		&created_at,
-		&updated_at,
+	err := ur.db.QueryRow("SELECT id, name, email, password, created_at, updated_at FROM users WHERE id=?", id).Scan(
+		&user.ID,
+		&user.Name,
+		&user.Email,
+		&user.Password,
+		&user.CreatedAt,
+		&user.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	userData := map[string]string{
-		"username":   username,
-		"email":      email,
-		"password":   password,
-		"created_at": created_at,
-		"updated_at": updated_at,
+	return user, nil
+}
+func (ur *UserRepository) LoginUser(email string) (*models.User, error) {
+	user := &models.User{}
+
+	err := ur.db.QueryRow("SELECT id, name, password FROM users WHERE email=?", email).Scan(&user.ID, &user.Name, &user.Password)
+	if err != nil {
+		return nil, errors.New("password salah atau pengguna tidak ditemukan")
 	}
 
-	return userData, nil
+	return user, nil
 }

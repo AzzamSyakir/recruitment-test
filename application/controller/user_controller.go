@@ -60,28 +60,42 @@ func (uc *UserController) CreateUserController(w http.ResponseWriter, r *http.Re
 	responses.SuccessResponse(w, "Success", userData, http.StatusCreated)
 }
 func (uc *UserController) FetchUserController(w http.ResponseWriter, r *http.Request) {
-	userData, err := uc.userService.FetchUser()
+	usersData, err := uc.userService.FetchUser()
 	if err != nil {
-		errorMessage := fmt.Sprintf("Failed to get user: %v", err)
+		errorMessage := fmt.Sprintf("Failed to get users: %v", err)
 		responses.ErrorResponse(w, errorMessage, http.StatusInternalServerError)
 		return
 	}
+
 	// Membuat objek data pengguna untuk dikirim dalam respons
-	responseData := struct {
+	var responseData []struct {
 		Username  string `json:"username"`
 		Email     string `json:"email"`
 		CreatedAt string `json:"created_at"`
 		UpdatedAt string `json:"updated_at"`
-	}{
-		Username:  userData["username"],
-		Email:     userData["email"],
-		CreatedAt: userData["created_at"],
-		UpdatedAt: userData["updated_at"],
 	}
+
+	for _, user := range usersData {
+		userData := struct {
+			Username  string `json:"username"`
+			Email     string `json:"email"`
+			CreatedAt string `json:"created_at"`
+			UpdatedAt string `json:"updated_at"`
+		}{
+			Username:  user.Name,
+			Email:     user.Email,
+			CreatedAt: user.CreatedAt.String(), // Menggunakan String() untuk mendapatkan representasi string dari time.Time
+			UpdatedAt: user.UpdatedAt.String(), // Menggunakan String() untuk mendapatkan representasi string dari time.Time
+		}
+
+		responseData = append(responseData, userData)
+	}
+
 	// Mengembalikan data pengguna sebagai JSON
 	w.Header().Set("Content-Type", "application/json")
 	responses.SuccessResponse(w, "Success", responseData, http.StatusOK)
 }
+
 func (uc *UserController) GetUserController(w http.ResponseWriter, r *http.Request) {
 	// Mendapatkan parameter id
 	vars := mux.Vars(r)
@@ -90,6 +104,7 @@ func (uc *UserController) GetUserController(w http.ResponseWriter, r *http.Reque
 		responses.ErrorResponse(w, "id harus disertakan", http.StatusBadRequest)
 		return
 	}
+
 	userData, err := uc.userService.GetUser(id)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed to get user: %v", err)
@@ -104,11 +119,12 @@ func (uc *UserController) GetUserController(w http.ResponseWriter, r *http.Reque
 		CreatedAt string `json:"created_at"`
 		UpdatedAt string `json:"updated_at"`
 	}{
-		Username:  userData["username"],
-		Email:     userData["email"],
-		CreatedAt: userData["created_at"],
-		UpdatedAt: userData["updated_at"],
+		Username:  userData.Name,
+		Email:     userData.Email,
+		CreatedAt: userData.CreatedAt.String(), // Menggunakan String() untuk mendapatkan representasi string dari time.Time
+		UpdatedAt: userData.UpdatedAt.String(), // Menggunakan String() untuk mendapatkan representasi string dari time.Time
 	}
+
 	// Mengembalikan data pengguna sebagai JSON
 	w.Header().Set("Content-Type", "application/json")
 	responses.SuccessResponse(w, "Success", responseData, http.StatusOK)
@@ -176,4 +192,39 @@ func (uc *UserController) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	responses.OtherResponses(w, "Success delete user", http.StatusCreated)
+}
+func (uc *UserController) LoginUser(w http.ResponseWriter, r *http.Request) {
+	var requestUser map[string]string
+
+	// Membaca data JSON dari body permintaan
+	if err := json.NewDecoder(r.Body).Decode(&requestUser); err != nil {
+		responses.ErrorResponse(w, "Gagal membaca data pengguna dari permintaan", http.StatusBadRequest)
+		return
+	}
+
+	// Mendapatkan email dan password dari data pengguna
+	email, ok := requestUser["email"]
+	if !ok {
+		responses.ErrorResponse(w, "Email harus diisi", http.StatusBadRequest)
+		return
+	}
+
+	password, ok := requestUser["password"]
+	if !ok {
+		responses.ErrorResponse(w, "Password harus diisi", http.StatusBadRequest)
+		return
+	}
+
+	// Memanggil service untuk melakukan login
+	token, err := uc.userService.LoginUser(email, password)
+	if err != nil {
+		errorMessage := fmt.Sprintf("login failed: %v", err)
+
+		responses.ErrorResponse(w, errorMessage, http.StatusUnauthorized)
+		return
+	}
+
+	// Mengembalikan token dan pesan sukses
+	response := map[string]string{"token": token}
+	responses.SuccessResponse(w, "Login berhasil", response, http.StatusOK)
 }

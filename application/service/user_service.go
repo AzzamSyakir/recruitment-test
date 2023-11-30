@@ -1,9 +1,13 @@
 package service
 
 import (
+	"clean-golang/application/models"
 	"clean-golang/application/repository"
+	"fmt"
+	"os"
 	"time"
 
+	"github.com/dgrijalva/jwt-go"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -34,7 +38,7 @@ func (service *UserService) CreateUser(name, email, password string) (int64, err
 	return userID, nil
 }
 
-func (us *UserService) FetchUser() (map[string]string, error) {
+func (us *UserService) FetchUser() ([]models.User, error) {
 	return us.UserRepository.FetchUser()
 }
 func (service *UserService) UpdateUser(id int, name, email, password string) error {
@@ -67,6 +71,38 @@ func (service *UserService) DeleteUser(id int) error {
 
 	return nil
 }
-func (us *UserService) GetUser(id int) (map[string]string, error) {
+func (us *UserService) GetUser(id int) (*models.User, error) {
 	return us.UserRepository.GetUser(id)
+}
+func (us *UserService) LoginUser(email string, password string) (string, error) {
+	// Mendapatkan informasi pengguna dari repository
+	user, err := us.UserRepository.LoginUser(email)
+	if err != nil {
+		return "", err
+	}
+
+	// Membandingkan password yang dimasukkan dengan password yang ada di database
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
+		return "", fmt.Errorf("password salah")
+	}
+
+	// Jika login berhasil, buat token JWT
+	token := jwt.New(jwt.SigningMethodHS256)
+
+	// Menentukan klaim (claims) token
+	claims := token.Claims.(jwt.MapClaims)
+	claims["user_id"] = user.ID
+	claims["username"] = user.Name
+	claims["exp"] = time.Now().Add(time.Hour * 24).Unix() // Token berlaku selama 24 jam
+
+	// Menandatangani token dengan secret key
+	secretKeyString := os.Getenv("SECRET_KEY")
+	secretKey := []byte(secretKeyString)
+
+	tokenString, err := token.SignedString(secretKey)
+	if err != nil {
+		return "", err
+	}
+
+	return tokenString, nil
 }
