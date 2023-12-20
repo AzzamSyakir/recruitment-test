@@ -1,10 +1,10 @@
 package middleware
 
 import (
-	"clean-golang/application/responses"
 	"fmt"
 	"net/http"
 	"os"
+	"recruitment-test/application/responses"
 	"strings"
 
 	"github.com/dgrijalva/jwt-go"

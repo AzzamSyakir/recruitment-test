@@ -5,11 +5,11 @@ import (
 	"log"
 )
 
-// Migrate digunakan untuk menjalankan migrasi tabel.
-func UserMigrate(db *sql.DB) {
-	// SQL statement untuk memeriksa apakah tabel users sudah ada
+// TaskMigrate digunakan untuk menjalankan migrasi tabel task.
+func TaskMigrate(db *sql.DB) {
+	// SQL statement untuk memeriksa apakah tabel task sudah ada
 	checkTableSQL := `
-        SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'users'
+        SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'task'
     `
 
 	// Menjalankan perintah SQL untuk memeriksa apakah tabel sudah ada
@@ -23,19 +23,20 @@ func UserMigrate(db *sql.DB) {
 
 	if tableCount > 0 {
 		// Jika tabel sudah ada, tampilkan pesan
-		log.Println("Tabel users sudah di migrasi")
+		log.Println("Tabel task sudah di migrasi")
 		return
 	}
 
-	// SQL statement untuk membuat tabel users
+	// SQL statement untuk membuat tabel task
 	createTableSQL := `
-        CREATE TABLE IF NOT EXISTS users (
+        CREATE TABLE IF NOT EXISTS task (
             id CHAR(36) NOT NULL PRIMARY KEY,
-            name VARCHAR(255) NOT NULL,
-            email VARCHAR(255) NOT NULL UNIQUE,
-		password VARCHAR(255) NOT NULL,
-		created_at TIMESTAMP NOT NULL,
-            updated_at TIMESTAMP NOT NULL
+            title VARCHAR(255) NOT NULL,
+		owner_id CHAR(36),
+            description VARCHAR(255) NOT NULL UNIQUE,
+            status ENUM('belum selesai', 'selesai', 'ditunda') NOT NULL,
+		FOREIGN KEY (owner_id) REFERENCES user(id)
+            due_date TIMESTAMP NOT NULL
         )
     `
 
@@ -48,5 +49,5 @@ func UserMigrate(db *sql.DB) {
 	}
 
 	// Pesan sukses jika migrasi berhasil
-	log.Println("Migrasi tabel users berhasil")
+	log.Println("Migrasi tabel task berhasil")
 }

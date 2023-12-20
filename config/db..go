@@ -1,10 +1,10 @@
 package config
 
 import (
-	"clean-golang/application/migration"
 	"database/sql"
 	"fmt"
 	"os"
+	"recruitment-test/application/migration"
 
 	_ "github.com/go-sql-driver/mysql" // Import driver MySQL
 	"github.com/rs/zerolog/log"
@@ -40,7 +40,9 @@ func InitDB() *sql.DB {
 	log.Info().Msg("Terhubung ke database!")
 
 	// Panggil fungsi migrate untuk inisialisasi migrasi database
-	migration.UserMigrate(db) // User -> Order
+	migration.UserMigrate(db)  // User
+	migration.TokenMigrate(db) // tokens
+	migration.TaskMigrate(db)  // tasks
 
 	DB = db
 

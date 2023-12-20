@@ -1,9 +1,9 @@
 package main
 
 import (
-	routes "clean-golang/application/router"
 	"fmt"
 	"log"
+	routes "recruitment-test/application/router"
 
 	"github.com/joho/godotenv"
 )
