@@ -5,8 +5,7 @@ Proyek ini merupakan aplikasi Go yang dibuat dengan menggunakan pola desain bers
 Proyek ini memiliki setidaknya satu hubungan antara dua tabel di database. di tabel tasks dan users yang dimana user memiliki koneksi one to many ke tabel tasks
 
 # cara  menjalankan proyek
-import kode dari github ke local 
-install dependensi yang dibutuhkan projek 
+import kode dari github ke local, install dependensi yang dibutuhkan projek, 
 dan jalankan ``go run main.go``
 
 # Design Pattern
